@@ -209,6 +209,66 @@ If your Wi-Fi router has both of these options you might have to disable them bo
 If your still having problems here, check other settings within the Wi-Fi router and the bitaxe device, this includes the URL for
 the Stratum Host and Stratum Port.
 
+## KF1950 / BitshokaNini V1.1 Support
+
+This fork adds experimental support for the **KF1950 ASIC** as used on the **BitshokaNini V1.1** hashboard.
+
+### Hardware
+
+- **ASIC**: KF1950 (single chip on BitshokaNini V1.1)
+- **UART baud**: 363,636 bps
+- **Reference clock**: 24 MHz
+- **PLL N constant**: 0x80 (matches Whatsminer CSV capture)
+- **Firmware target**: ESP32-S3 (same as other Bitaxe variants)
+
+### What Is Working
+
+- **Chip detection**: Chip is detected at power-on and responds to the ID command with an 11-byte response
+- **Address assignment**: Single chip assigned address 0x01 (with correct CRC init 0x3A)
+- **Full init sequence**: All init phases transmit correctly and match the WM packet capture ground truth:
+  - Phase 5: PLL config (4 domains × 2 iterations = 40 commands, N=0x80)
+  - Phase 6: Core enables — 80 44 / 8D D4 first, all 6 masks (0x31, 0x21, 0x11, 0x91, 0xA1, 0xB1) × 1 pass, single core reset at end
+  - Phase 7: Post-config registers, `pll_phase2`, B1 second pass, final PLL
+- **Chip responsiveness**: Chip replies to STATUS_READ throughout and after init (address 0x01 confirmed live)
+- **Job transmission**: 228-byte job packets are built and sent correctly
+- **Stratum**: WiFi, pool connection, job subscription, and authorization all work normally
+- **Web UI / AxeOS**: Temperature, fan control, and API all function
+
+### What Is Not Working
+
+- **No nonce output**: The chip receives jobs but produces zero nonce responses. Root cause is unknown.
+  - The STATUS_READ `b3` byte is always `0x01` throughout init. Working Whatsminer chips show `b3=0x80` during active hashing.
+  - The init sequence has been aligned byte-for-byte with `kf1950_wm_init_job.py` (a Python script that produced 19,612 valid nonces on an aditBoard with the same chip), yet the chip does not hash on BitshokaNini.
+  - Possible causes under investigation: power supply differences, crystal/clock issues on BitshokaNini vs aditBoard, or a remaining init sequence gap.
+
+### Key Implementation Files
+
+| File | Description |
+|------|-------------|
+| `components/asic/kf1950.c` | KF1950 driver: init, job send, nonce parse |
+| `components/asic/include/kf1950.h` | KF1950 constants, packet sizes, debug flags |
+| `components/asic/asic.c` | ASIC dispatch table (added KF1950 entry) |
+| `main/device_config.h` | Device model/ASIC config (KF1950 entry) |
+
+### Protocol Notes
+
+- **CRC-8**: poly=0x31, init=0xFF for all commands; init=0x3A for address assignment only
+- **Packet format**: `FF FF [payload] [CRC8]`; the trigger `FF FF E3` is sent raw (no CRC)
+- **Job packet**: 228 bytes — header (5B), metadata (12B), 6 midstate slots × 32B, tail (15B), CRC
+- **Nonce response**: 11 bytes, no preamble — `[00] [chip] [04|00] [06] [nonce 4B] [byte8] [counter] [CRC8]`
+
+### Building for BitshokaNini
+
+```bash
+source ~/esp/esp-idf/export.sh
+idf.py build
+idf.py -p /dev/ttyACM0 flash
+```
+
+Set `asicModel` to `KF1950` in the device config or via the AxeOS web interface.
+
+---
+
 ## Attributions
 
 The display font is Portfolio 6x8 from https://int10h.org/oldschool-pc-fonts/ by VileR.
