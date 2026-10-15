@@ -43,6 +43,12 @@ static const char * TAG = "kf1950";
 #define KF1950_DIE_TEMP_PERIOD_MS   30000
 #define KF1950_DIE_TEMP_STALE_MS    120000
 
+// The chip has no hash counter registers, so hashrate is estimated from nonce counts.
+// The ticket mask written in rearm_cycle (00 00 00 C0) makes the chip return every
+// nonce of difficulty >= 4, i.e. one nonce per 4 x 2^32 hashes on average.
+#define KF1950_NONCE_DIFF           4
+#define KF1950_HASH_COUNT_PERIOD_MS 10000
+
 // Opcodes (first payload byte)
 #define CMD_READ_ID     0x10
 #define CMD_STATUS      0x11
@@ -122,6 +128,9 @@ static uint32_t last_rearm_ms;
 static kf1950_x81_job_t job_cache;
 static bool job_cached;
 static SemaphoreHandle_t tx_lock;
+
+static uint32_t hash_count;      // in units of 2^32 hashes
+static uint32_t hash_count_ms;
 
 static float die_temp_c = -1.0f;
 static uint32_t die_temp_ms;
@@ -533,6 +542,17 @@ task_result * KF1950_process_work(GlobalState * GLOBAL_STATE)
 
     sample_die_temp();
 
+    // Report the nonce-derived counter as the chip's total hash counter.
+    uint32_t now = now_ms();
+    if (now - hash_count_ms >= KF1950_HASH_COUNT_PERIOD_MS) {
+        hash_count_ms = now;
+        result.register_type = REGISTER_TOTAL_COUNT;
+        result.asic_nr = 0;
+        result.value = hash_count;
+        result.timestamp_us = esp_timer_get_time();
+        return &result;
+    }
+
     int received = SERIAL_rx((uint8_t *) &rx, sizeof(rx), 2000);
     result.timestamp_us = esp_timer_get_time();
     if (received <= 0) {
@@ -559,6 +579,8 @@ task_result * KF1950_process_work(GlobalState * GLOBAL_STATE)
     }
     result.job = *GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id];
     pthread_mutex_unlock(&GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs_lock);
+
+    hash_count += KF1950_NONCE_DIFF;
 
     uint8_t slot = rx.midstate_idx <= 5 ? 5 - rx.midstate_idx : 0;
 
