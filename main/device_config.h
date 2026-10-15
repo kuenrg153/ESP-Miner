@@ -16,6 +16,7 @@ extern const TPS546_CONFIG TPS546_CONFIG_HEX;
 extern const TPS546_CONFIG TPS546_CONFIG_GAMMA_TURBO;
 extern const TPS546_CONFIG TPS546_CONFIG_NAJA_DUO;
 extern const TPS546_CONFIG TPS546_CONFIG_GAMMA_HEX;
+extern const TPS546_CONFIG TPS546_CONFIG_NINI;
 
 typedef enum
 {
@@ -24,6 +25,7 @@ typedef enum
     BM1368,
     BM1370,
     BM1373,
+    KF1950,
 } Asic;
 
 typedef struct AsicConfig {
@@ -58,6 +60,7 @@ typedef enum
     GAMMA_HEX,
     GAMMA_TURBO,
     NAJA_DUO,
+    NINI,
 } Family;
 
 typedef struct FamilyConfig {
@@ -106,12 +109,14 @@ static const uint16_t BM1368_FREQUENCY_OPTIONS[]   = {400, 425, 450, 475, 485, 4
 static const uint16_t BM1370_FREQUENCY_OPTIONS[]   = {400, 490, 525, 550, 600, 625, 690,                0};
 static const uint16_t BM1373_FREQUENCY_OPTIONS[]   = {327, 350, 375, 380, 400, 410,                     0};
 static const uint16_t BM1370_FRQUENCY_XP_OPTIONS[] = {350, 375, 380, 400, 410,                        0};
+static const uint16_t KF1950_FREQUENCY_OPTIONS[]   = {200, 250, 300, 350, 400, 450, 500,           0};
 
 static const uint16_t BM1397_VOLTAGE_OPTIONS[] = {1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 0};
 static const uint16_t BM1366_VOLTAGE_OPTIONS[] = {1100, 1150, 1200, 1250, 1300,                         0};
 static const uint16_t BM1368_VOLTAGE_OPTIONS[] = {1100, 1150, 1166, 1200, 1250, 1300,                   0};
 static const uint16_t BM1370_VOLTAGE_OPTIONS[] = {1000, 1060, 1100, 1150, 1200, 1250,                   0};
 static const uint16_t BM1373_VOLTAGE_OPTIONS[] = {1000, 1060, 1100, 1150, 1200, 1250,                   0};
+static const uint16_t KF1950_VOLTAGE_OPTIONS[] = { 300,  330,  350,  370,  400,                         0};
 
 static const AsicConfig ASIC_BM1397 = { .id = BM1397, .name = "BM1397", .chip_id = 1397, .default_frequency_mhz = 425, .frequency_options = BM1397_FREQUENCY_OPTIONS, .default_voltage_mv = 1400, .voltage_options = BM1397_VOLTAGE_OPTIONS, .core_count = 168, .small_core_count =  672, .hash_domains = 1, .default_asic_timeout = 20, .hardware_version_rolling = false, .software_midstates = 4, .hashrate_test_percentage_target = 0.85};
 static const AsicConfig ASIC_BM1366 = { .id = BM1366, .name = "BM1366", .chip_id = 1366, .default_frequency_mhz = 485, .frequency_options = BM1366_FREQUENCY_OPTIONS, .default_voltage_mv = 1200, .voltage_options = BM1366_VOLTAGE_OPTIONS, .core_count = 112, .small_core_count =  894, .hash_domains = 4, .default_asic_timeout = 2000, .hardware_version_rolling = true, .software_midstates = 0, .hashrate_test_percentage_target = 0.85};
@@ -120,6 +125,7 @@ static const AsicConfig ASIC_BM1370 = { .id = BM1370, .name = "BM1370", .chip_id
 static const AsicConfig ASIC_BM1370XP = { .id = BM1370, .name = "BM1370", .chip_id = 1370, .default_frequency_mhz = 400, .frequency_options = BM1370_FRQUENCY_XP_OPTIONS, .default_voltage_mv = 1150, .voltage_options = BM1370_VOLTAGE_OPTIONS, .core_count = 128, .small_core_count = 2040, .hash_domains = 4, .default_asic_timeout = 500, .hardware_version_rolling = true, .software_midstates = 0, .hashrate_test_percentage_target = 0.85};
 static const AsicConfig ASIC_BM1370_HEX = { .id = BM1370, .name = "BM1370", .chip_id = 1370, .default_frequency_mhz = 690, .frequency_options = BM1370_FREQUENCY_OPTIONS, .default_voltage_mv = 1200, .voltage_options = BM1370_VOLTAGE_OPTIONS, .core_count = 128, .small_core_count = 2040, .hash_domains = 4, .default_asic_timeout = 500, .hardware_version_rolling = true, .software_midstates = 0, .hashrate_test_percentage_target = 0.85};
 static const AsicConfig ASIC_BM1373 = { .id = BM1373, .name = "BM1372/BM1373", .chip_id = 1372, .default_frequency_mhz = 327, .frequency_options = BM1373_FREQUENCY_OPTIONS, .default_voltage_mv = 1000, .voltage_options = BM1373_VOLTAGE_OPTIONS, .core_count = 128, .small_core_count = 6725, .hash_domains = 8, .default_asic_timeout = 500, .hardware_version_rolling = true, .software_midstates = 0, .init_retry_attempts = 3, .hashrate_test_percentage_target = 0.85};
+static const AsicConfig ASIC_KF1950 = { .id = KF1950, .name = "KF1950", .chip_id = 0x1950, .default_frequency_mhz = 400, .frequency_options = KF1950_FREQUENCY_OPTIONS, .default_voltage_mv = 370, .voltage_options = KF1950_VOLTAGE_OPTIONS, .core_count = 63, .small_core_count = 407, .hash_domains = 1, .default_asic_timeout = 42, .hardware_version_rolling = false, .software_midstates = 6, .hashrate_test_percentage_target = 0.70};
 
 static const AsicConfig default_asic_configs[] = {
     ASIC_BM1397,
@@ -129,6 +135,7 @@ static const AsicConfig default_asic_configs[] = {
     ASIC_BM1370XP,
     ASIC_BM1370_HEX,
     ASIC_BM1373,
+    ASIC_KF1950,
 };
 
 static const FamilyConfig FAMILY_MAX         = { .id = MAX,         .name = "Max",        .asic = ASIC_BM1397,   .asic_count = 1, .max_power =  25, .power_offset = 5,  .nominal_voltage = 5,  .voltage_domains = 1, .swarm_color = "red",      .tps546_config = &TPS546_CONFIG_DEFAULT, };
@@ -141,6 +148,7 @@ static const FamilyConfig FAMILY_SUPRA_HEX   = { .id = SUPRA_HEX,   .name = "Sup
 static const FamilyConfig FAMILY_GAMMA_TURBO = { .id = GAMMA_TURBO, .name = "GammaTurbo", .asic = ASIC_BM1370,   .asic_count = 2, .max_power =  60, .power_offset = 10, .nominal_voltage = 12, .voltage_domains = 1, .swarm_color = "cyan",     .tps546_config = &TPS546_CONFIG_GAMMA_TURBO, };
 static const FamilyConfig FAMILY_NAJA_DUO    = { .id = NAJA_DUO,    .name = "NajaDuo",    .asic = ASIC_BM1373,   .asic_count = 2, .max_power =  60, .power_offset = 0,  .nominal_voltage = 12, .voltage_domains = 2, .swarm_color = "magenta",  .tps546_config = &TPS546_CONFIG_NAJA_DUO, };
 static const FamilyConfig FAMILY_GAMMA_HEX   = { .id = GAMMA_HEX,   .name = "GammaHex",   .asic = ASIC_BM1370_HEX, .asic_count = 6, .max_power = 180, .power_offset = 25, .nominal_voltage = 12, .voltage_domains = 2, .swarm_color = "cyan", .tps546_config = &TPS546_CONFIG_GAMMA_HEX, };
+static const FamilyConfig FAMILY_NINI        = { .id = NINI,        .name = "Nini",       .asic = ASIC_KF1950,   .asic_count = 1, .max_power =  25, .power_offset = 5,  .nominal_voltage = 5,  .voltage_domains = 1, .swarm_color = "yellow",   .tps546_config = &TPS546_CONFIG_NINI, };
 
 static const FamilyConfig default_families[] = {
     FAMILY_MAX,
@@ -153,6 +161,7 @@ static const FamilyConfig default_families[] = {
     FAMILY_GAMMA_HEX,
     FAMILY_GAMMA_TURBO,
     FAMILY_NAJA_DUO,
+    FAMILY_NINI,
 };
 
 static const DeviceConfig default_configs[] = {
@@ -179,6 +188,7 @@ static const DeviceConfig default_configs[] = {
     { .board_version = "701",  .family = FAMILY_SUPRA_HEX,   .pins = BITAXE_ORIGINAL_PINS, .EMC2302 = true, .TMP1075 = true,                                            .temp_offset = 10,  .TPS546 = true,                                                           .power_consumption_target = 90, },
     { .board_version = "702",  .family = FAMILY_SUPRA_HEX,   .pins = BITAXE_ORIGINAL_PINS, .EMC2302 = true, .TMP1075 = true,                                            .temp_offset = 10,  .TPS546 = true,                                                           .power_consumption_target = 90, },
     { .board_version = "801",  .family = FAMILY_GAMMA_TURBO, .pins = BITAXE_ORIGINAL_PINS, .EMC2103 = true,                                          .temp_flip = true, .temp_offset = 0,   .TPS546 = true, .power_consumption_target = 36, .self_test_fan_target_rpm = 500, },
+    { .board_version = "1100", .family = FAMILY_NINI,        .pins = BITAXE_ORIGINAL_PINS, .EMC2101 = true, .emc_internal_temp = true, .emc_ideality_factor = 0x24, .emc_beta_compensation = 0x00,   .TPS546 = true,                                                           .power_consumption_target = 14, },
     { .board_version = "1201", .family = FAMILY_NAJA_DUO,    .pins = BITAXE_COLOR_PINS,    .asic_enable = true, .asic_enable_active_high = true, .EMC2103 = true, .emc_ideality_factor = 0x17, .emc_beta_compensation = 0x10, .temp_offset = 0, .TPS546 = true, .power_consumption_target = 50, .power_consumption_margin = 10, .self_test_fan_target_rpm = 500, },
     { .board_version = "1300", .family = FAMILY_GAMMA_HEX,   .pins = BITAXE_COLOR_PINS,    .asic_enable = true, .asic_enable_active_high = true, .EMC2103 = true, .emc_direct_pwm = true, .temp_flip = true, .display_flip = true, .temp_offset = 0, .TPS546 = true, .power_consumption_target = 140, .power_consumption_margin = 21, .self_test_fan_target_rpm = 500, },
 };
