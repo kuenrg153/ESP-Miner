@@ -10,6 +10,7 @@
 #include "bm1368.h"
 #include "bm1370.h"
 #include "bm1373.h"
+#include "kf1950.h"
 
 #include "asic.h"
 #include "asic_common.h"
@@ -34,6 +35,8 @@ uint8_t ASIC_init(GlobalState * GLOBAL_STATE)
             return BM1370_init(GLOBAL_STATE);
         case BM1373:
             return BM1373_init(GLOBAL_STATE);
+        case KF1950:
+            return KF1950_init(GLOBAL_STATE);
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
     return 0;
@@ -52,6 +55,8 @@ task_result * ASIC_process_work(GlobalState * GLOBAL_STATE)
             return BM1370_process_work(GLOBAL_STATE);
         case BM1373:
             return BM1373_process_work(GLOBAL_STATE);
+        case KF1950:
+            return KF1950_process_work(GLOBAL_STATE);
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot process work", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
     return NULL;
@@ -70,6 +75,8 @@ int ASIC_set_max_baud(GlobalState * GLOBAL_STATE)
             return BM1370_set_max_baud();
         case BM1373:
             return BM1373_set_max_baud();
+        case KF1950:
+            return KF1950_set_max_baud();
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot set max baud", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
     return 0;
@@ -92,6 +99,9 @@ void ASIC_send_work(GlobalState * GLOBAL_STATE, asic_job_t * next_job)
             break;
         case BM1373:
             BM1373_send_work(GLOBAL_STATE, next_job);
+            break;
+        case KF1950:
+            KF1950_send_work(GLOBAL_STATE, next_job);
             break;
         default:
             ESP_LOGE(TAG, "Unknown ASIC id %d — cannot send work", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
@@ -118,6 +128,9 @@ void ASIC_set_version_mask(GlobalState * GLOBAL_STATE, uint32_t mask)
         case BM1373:
             BM1373_set_version_mask(mask);
             break;
+        case KF1950:
+            KF1950_set_version_mask(mask);
+            break;
         default:
             ESP_LOGE(TAG, "Unknown ASIC id %d — cannot set version mask", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
             break;
@@ -141,6 +154,11 @@ void ASIC_set_frequency(GlobalState * GLOBAL_STATE)
             return;
         case BM1373:
             do_frequency_transition(GLOBAL_STATE, BM1373_send_hash_frequency);
+            return;
+        case KF1950:
+            // No stepped ramp: the KF1950 stops returning nonces on intermediate steps
+            GLOBAL_STATE->POWER_MANAGEMENT_MODULE.actual_frequency =
+                KF1950_send_hash_frequency(GLOBAL_STATE->POWER_MANAGEMENT_MODULE.frequency_value);
             return;
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot set frequency", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
@@ -168,6 +186,8 @@ void ASIC_set_nonce_space(GlobalState * GLOBAL_STATE)
         case BM1373:
             BM1373_set_nonce_space(nonce_percent, frequency, asic_count, cores);
             return;
+        case KF1950:
+            return;
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot set nonce space", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
 }
@@ -188,6 +208,7 @@ double ASIC_get_asic_job_frequency_ms(GlobalState * GLOBAL_STATE)
         case BM1368:
         case BM1370:
         case BM1373:
+        case KF1950:
             return asic_default_timeout_divided;
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot compute job frequency", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
@@ -211,6 +232,9 @@ void ASIC_read_registers(GlobalState * GLOBAL_STATE)
             break;
         case BM1373:
             BM1373_read_registers();
+            break;
+        case KF1950:
+            KF1950_read_registers();
             break;
         default:
             ESP_LOGE(TAG, "Unknown ASIC id %d — cannot read registers", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
@@ -265,6 +289,9 @@ void ASIC_set_difficulty(GlobalState * GLOBAL_STATE, uint8_t difficulty_power)
             return;
         case BM1373:
             BM1373_set_difficulty(difficulty_power);
+            return;
+        case KF1950:
+            KF1950_set_difficulty(difficulty_power);
             return;
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot set difficulty", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);

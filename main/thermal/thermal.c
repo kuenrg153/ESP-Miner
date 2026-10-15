@@ -9,6 +9,7 @@
 #include "EMC2103.h"
 #include "EMC2302.h"
 #include "TMP1075.h"
+#include "kf1950.h"
 
 static const char * TAG = "thermal";
 
@@ -100,6 +101,14 @@ float Thermal_get_chip_temp(GlobalState * GLOBAL_STATE)
 {
     if (!GLOBAL_STATE->ASIC_initalized) {
         return -1;
+    }
+
+    // The KF1950 reports its own die temperature; the Nini's EMC2101 only sees the board.
+    if (GLOBAL_STATE->DEVICE_CONFIG.family.asic.id == KF1950) {
+        float die_temp = KF1950_get_die_temp();
+        if (die_temp >= 0.0f) {
+            return die_temp;
+        }
     }
 
     if (GLOBAL_STATE->DEVICE_CONFIG.EMC2101) {

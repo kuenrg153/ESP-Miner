@@ -773,6 +773,7 @@ components:
             - BM1370
             - BM1373
             - BM1397
+            - KF1950
           examples:
             - "BM1366"
         deviceModel:
