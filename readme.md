@@ -13,6 +13,38 @@ The ESP-Miner firmware is maintained by OSMU which hosts it's own discussion for
 
 If you are looking for premade images to load on your Bitaxe, check out the [latest release](https://github.com/bitaxeorg/ESP-Miner/releases/latest) page. Maybe you want [instructions](https://github.com/bitaxeorg/ESP-Miner/blob/master/flashing.md) for loading factory images.
 
+## Bitaxe Nini (KF1950)
+
+This fork (branch `nini-kf1950`) adds support for the Bitaxe Nini, a single-chip board built around the KF1950 ASIC, the hashing chip used in the WhatsMiner M30S. The upstream release images do not include it, so it has to be built from this branch.
+
+| | |
+|---|---|
+| Board version | `1100` (family `Nini`) |
+| Config | `configs/config-1100.csv`, default 400 MHz / 370 mV |
+| Core rail | onboard TPS546 (`TPS546_CONFIG_NINI`, 0.2–0.5 V window) |
+| Fan / board temperature | EMC2101 |
+| ESP32 module | ESP32-S3-WROOM-1-N16R8 |
+
+### Building and flashing
+
+ESP-IDF **6.0.3 or newer** is required (6.0.2 fails with "version solving failed").
+
+```
+git clone --recursive -b nini-kf1950 https://github.com/kuenrg153/ESP-Miner.git
+cd ESP-Miner
+idf.py build && ./merge_bin.sh ./esp-miner-merged.bin
+bitaxetool --config ./configs/config-1100.csv --firmware ./esp-miner-merged.bin
+```
+
+A board flashed with older KF1950 test firmware may still have `boardversion` set to `900` in NVS. That value no longer matches any board, so flash `config-1100.csv` or set the board version to `1100` in AxeOS.
+
+### Known behaviour
+
+- **Hashrate is an estimate.** The KF1950 has no hash counter that the firmware can read. The driver counts returned nonces instead: every nonce of difficulty 4 or more comes back, so each nonce stands for about 4 × 2^32 hashes. The figure shown in AxeOS and on the display reads roughly 10–15 % below the expected rate.
+- **Chip temperature** is the KF1950's own die sensor. If that reading goes stale for 2 minutes, the firmware falls back to the EMC2101's internal sensor, which shows board temperature.
+- **No frequency ramp.** Frequency changes take effect at the next re-arm cycle (about every 2.5 s) in a single step, because the KF1950 stops returning nonces on intermediate PLL steps.
+- **Multi-chip strings** (for example a 4-chip KF1950 hashboard) are work in progress and are not included in this branch.
+
 # Bitaxetool
 We also have a command line python tool for flashing Bitaxe and updating the config called Bitaxetool 
 
