@@ -121,7 +121,6 @@ static const uint8_t CE_REPEATS[] = {   1,    1,    1,    2,    2,    2};
 #define CE_INDEX_LAST  0x70
 
 static task_result result;
-static uint8_t job_counter;
 static uint8_t chip_addr;
 static float target_freq = 400.0f;
 static uint32_t last_rearm_ms;
@@ -482,7 +481,7 @@ static void build_x81_job(kf1950_x81_job_t * packet, const asic_job_t * job, uin
     packet->crc = crc8((uint8_t *) packet, sizeof(*packet) - 1);
 }
 
-void KF1950_send_work(GlobalState * GLOBAL_STATE, asic_job_t * next_job)
+void KF1950_send_work(GlobalState * GLOBAL_STATE, const asic_job_t * next_job)
 {
     uint32_t now = now_ms();
     if (now - last_rearm_ms >= KF1950_REARM_PERIOD_MS) {
@@ -490,21 +489,13 @@ void KF1950_send_work(GlobalState * GLOBAL_STATE, asic_job_t * next_job)
         rearm_cycle(target_freq);
     }
 
-    job_counter = (job_counter + 1) % MAX_ASIC_JOBS;
+    uint8_t job_id = (uint8_t) asic_job_store_claim(&GLOBAL_STATE->job_store, next_job);
 
     kf1950_x81_job_t packet;
-    build_x81_job(&packet, next_job, job_counter);
-
-    pthread_mutex_lock(&GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs_lock);
-    if (GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_counter] != NULL) {
-        free(GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_counter]);
-    }
-    GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_counter] = next_job;
-    GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs[job_counter] = 1;
-    pthread_mutex_unlock(&GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs_lock);
+    build_x81_job(&packet, next_job, job_id);
 
     #if KF1950_DEBUG_JOBS
-    ESP_LOGI(TAG, "Send Job: %02X", job_counter);
+    ESP_LOGI(TAG, "Send Job: %02X", job_id);
     #endif
 
     send_raw((uint8_t *) &packet, sizeof(packet), KF1950_DEBUG_WORK);
@@ -569,16 +560,9 @@ task_result * KF1950_process_work(GlobalState * GLOBAL_STATE)
         return NULL;
     }
 
-    uint8_t job_id = rx.job_id;
-    pthread_mutex_lock(&GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs_lock);
-    if (job_id >= MAX_ASIC_JOBS || GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs[job_id] == 0 ||
-        GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id] == NULL) {
-        pthread_mutex_unlock(&GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs_lock);
-        ESP_LOGW(TAG, "Invalid job nonce found, id=%d", job_id);
+    if (!asic_job_store_lookup(&GLOBAL_STATE->job_store, rx.job_id, &result.job)) {
         return NULL;
     }
-    result.job = *GLOBAL_STATE->ASIC_TASK_MODULE.active_jobs[job_id];
-    pthread_mutex_unlock(&GLOBAL_STATE->ASIC_TASK_MODULE.valid_jobs_lock);
 
     hash_count += KF1950_NONCE_DIFF;
 

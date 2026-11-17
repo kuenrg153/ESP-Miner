@@ -15,8 +15,11 @@ typedef struct GlobalState GlobalState;
 // re-sent, so jobs must be paced rather than streamed.
 #define KF1950_JOB_INTERVAL_MS 42
 
+// Job ids 0-127 index the job store; result ids 0xC0 and up are register echoes.
+#define KF1950_JOB_SLOT_COUNT 128
+
 uint8_t KF1950_init(GlobalState * GLOBAL_STATE);
-void KF1950_send_work(GlobalState * GLOBAL_STATE, asic_job_t * next_job);
+void KF1950_send_work(GlobalState * GLOBAL_STATE, const asic_job_t * next_job);
 void KF1950_set_version_mask(uint32_t version_mask);
 int KF1950_set_max_baud(void);
 float KF1950_send_hash_frequency(float frequency);

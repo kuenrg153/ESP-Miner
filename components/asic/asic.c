@@ -305,6 +305,7 @@ void ASIC_clear_work(GlobalState * GLOBAL_STATE)
         case BM1368:
         case BM1370:
         case BM1373:
+        case KF1950:
             bm13xx_clear_work(&GLOBAL_STATE->job_store);
             return;
     }
@@ -326,6 +327,9 @@ void ASIC_init_job_slots(GlobalState * GLOBAL_STATE)
         case BM1370:
         case BM1373:
             bm13xx_init_job_slots(&GLOBAL_STATE->job_store, BM13XX_JOB_SLOT_COUNT);
+            return;
+        case KF1950:
+            bm13xx_init_job_slots(&GLOBAL_STATE->job_store, KF1950_JOB_SLOT_COUNT);
             return;
     }
     ESP_LOGE(TAG, "Unknown ASIC id %d — cannot init job slots", GLOBAL_STATE->DEVICE_CONFIG.family.asic.id);
